@@ -32,16 +32,7 @@ class Card(ABC):
     
     def on_enter_play(self):
         """Ejecuta el efecto de aparición en juego (a implementar en subclases si es necesario)"""
-        if self.has_enter_play_effect():
-            print(f"{self.name} entra en juego con efecto especial")
-    
-    def has_tap_ability(self) -> bool:
-        """Verifica si la carta tiene habilidad de 'Agotar'"""
-        return "Agotar:" in self.text
-    
-    def can_tap(self) -> bool:
-        """Verifica si la carta puede ser agotada (implementar en subclases)"""
-        return self.has_tap_ability()
+        pass
 
 
 @dataclass
@@ -132,30 +123,26 @@ class Token(Card):
         """Genera oro (por defecto 1, puede ser sobrescrito)"""
         return 1
     
-    def has_destroy_ability(self) -> bool:
-        """Verifica si tiene habilidad de 'Destruir'"""
-        return "Destruir:" in self.text
 
-
-class CardInPlay:
-    _next_id = 1  # Variable de clase
+# No se como puedo usar esta clase
+# class CardInPlay:
+#     _next_id = 1  # Variable de clase
     
-    def __init__(self, card):
-        self.card = card
-        self.is_tapped = False
-        self.current_damage = 0
-        self.id = CardInPlay._next_id
-        CardInPlay._next_id += 1
+#     def __init__(self, card):
+#         self.card = card
+#         self.is_tapped = False
+#         self.current_damage = 0
+#         self.id = CardInPlay._next_id
+#         CardInPlay._next_id += 1
     
-    # Métodos de conveniencia para acceder a propiedades de la carta
-    @property
-    def name(self):
-        return self.card.name
+#     # Métodos de conveniencia para acceder a propiedades de la carta
+#     @property
+#     def name(self):
+#         return self.card.name
     
-    @property
-    def cost(self):
-        return self.card.cost
-
+#     @property
+#     def cost(self):
+#         return self.card.cost
 
 
 
