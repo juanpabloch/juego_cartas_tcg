@@ -1,6 +1,4 @@
-from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, List, Dict, Any
 
 
 class GamePhase(Enum):
@@ -37,7 +35,7 @@ class GameState:
         self.player1 = player1
         self.player2 = player2
         self.current_player = player1
-        self.priority_player = player1
+        # self.priority_player = player1
         self.current_phase = GamePhase.SETUP
         self.turn_number = 1
         self.game_over = False
@@ -143,7 +141,6 @@ class GameState:
                 self.advance_phase()
                 return ActionResult(True, f"Avanzando a {self.current_phase.value}")
             self.current_player = self.players_pending[0]
-            self.priority_player = self.players_pending[0]
             
         return ActionResult(False, "Acción no implementada")
     
@@ -166,7 +163,6 @@ class GameState:
         self.player2.zones.retornar_tesoros_agotados()
         self.player2.zones.retornar_unidades_a_formacion()
         self.current_player = self.get_oponent()
-        self.priority_player = self.current_player
     
     
     def _setup_turn(self):
@@ -238,7 +234,7 @@ class GameState:
 
 
     def pass_phase(self):
-        return self.execute_action(self.priority_player, ActionType.PASS_PHASE)
+        return self.execute_action(self.current_player, ActionType.PASS_PHASE)
 
 
 
