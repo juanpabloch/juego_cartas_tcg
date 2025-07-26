@@ -19,10 +19,9 @@ if __name__ == "__main__":
     game_state = GameState(player_1, player_2)
     
     options = {
-        "1": "Terminar turno",
-        "2": "Ver MANO",
-        "3": "Ver RESERVA TESOROS",
-        "4": "PASAR",
+        "1": "Ver MANO",
+        "2": "Ver RESERVA TESOROS",
+        "3": "PASAR",
         "0": "Salir"
     }
     
@@ -55,14 +54,12 @@ if __name__ == "__main__":
                 
                 option = int(player.get_player_input(f"{player.name} seleccione una opcion 1 mulligan, 2 seleccionar carta"))
                 if option == 1:
-                    result = game_state.execute_action(player, ActionType.MULLIGAN_RETURN)
-                    print(result)
-                elif option == 2:
                     if player.zones.hand.mulligan_used:
                         continue
+                    result = game_state.execute_action(player, ActionType.MULLIGAN_RETURN)
+                elif option == 2:
                     card_id = player.get_player_input(f"{player.name} seleccione una carta (ID)")
                     result = game_state.execute_action(player, ActionType.MULLIGAN_RETURN, card_id=card_id)
-                    print(result)
                 
                 continue
         
@@ -74,18 +71,16 @@ if __name__ == "__main__":
         option_num = int(game_state.current_player.get_player_input(f"{game_state.current_player.name} seleccione una opcion"))        
 
         if option_num == 1:
-            game_state.advance_phase()
-            
-        elif option_num == 2:
             print(game_state.current_player.zones.hand.see_cards())
             
-        elif option_num == 3:
+        elif option_num == 2:
             print(game_state.current_player.zones.reserva_tesoros.see_cards())
             
-        elif option_num == 4:
+        elif option_num == 3:
             # pasar turno o current player
             print("Pasar")
-            game_state.pass_phase()
+            result = game_state.pass_phase()
+            print("RESULT: ", result)
             
         elif option_num == 0:
             print("Gracias por jugar!")

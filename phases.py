@@ -35,7 +35,7 @@ class GameState:
         self.player1 = player1
         self.player2 = player2
         self.current_player = player1
-        # self.priority_player = player1
+        self.priority_player = player1
         self.current_phase = GamePhase.SETUP
         self.turn_number = 1
         self.game_over = False
@@ -54,6 +54,8 @@ class GameState:
         
     def advance_phase(self):
         """Avanza a la siguiente fase"""
+        print("ADVANCE PHASE: ", self.current_phase)
+        print("CURRENT PLAYER: ", self.current_player.name)
         self._end_current_phase()
         
         if self.current_phase == GamePhase.SETUP:
@@ -69,10 +71,12 @@ class GameState:
             self.turn_number += 1
             
         self._start_current_phase()
+        print("CURRENT PLAYER 2: ", self.current_player.name)
             
     
     def _start_current_phase(self):
         """ Acciones automáticas al empezar una fase """
+        
         if self.current_phase == GamePhase.SETUP:
             print("Start SETUP")
             self._setup_turn()
@@ -89,30 +93,66 @@ class GameState:
             print("Start END")
             self._end_turn()
             self.advance_phase()
-        
+
         # # Limpiar acciones de fase anterior
         # self.phase_actions_taken.clear()
         # self.players_pending.clear()
         
-        
-    def can_play_card(self, player, card_id):
-        """Valida si se puede jugar una carta en la fase actual"""
-        
-    def can_attack(self, player, card_id):
-        """Valida si se puede atacar con una carta"""
-        
-    def can_defend(self, player, attacker_id, defender_id):
-        """Valida si se puede defender un ataque"""
-        
-    def _execute_play_card(self):
+    
+    def _end_current_phase(self):
+        """ Acciones automáticas al terminar una fase """
+        if self.current_phase == GamePhase.SETUP:
+            pass
+        elif self.current_phase == GamePhase.MAIN_1:
+            pass
+        elif self.current_phase == GamePhase.ATTACK:
+            self._resolve_combat()
+        elif self.current_phase == GamePhase.MAIN_2:
+            pass
+        elif self.current_phase == GamePhase.END:
+            # self._cleanup_phase()
+            self.player1.zones.retornar_tesoros_agotados()
+            self.player1.zones.retornar_unidades_a_formacion()
+            self.player2.zones.retornar_tesoros_agotados()
+            self.player2.zones.retornar_unidades_a_formacion()
+            
+    
+    
+    def _setup_turn(self):
+        """ Acciones automáticas al comenzar fase SETUP """
+        # 
+        if not self.players_pending:
+            self.players_pending = [self.player1, self.player2]
+            
+        if self.turn_number == 1 and not self.waiting_for_action:
+            self.player1.actions.draw_card_from_mazo(7)
+            self.player2.actions.draw_card_from_mazo(7)
+            self.waiting_for_action = "mulligan_return"
+            
+    
+    def _main_turn(self):
+        """ Acciones automáticas al comenzar fase MAIN """
+        if not self.players_pending:
+            self.players_pending = [self.player1, self.player2]
+    
+    
+    def _attack_turn(self):
+        """ Acciones automáticas al comenzar fase ATTACK """
+        if not self.players_pending:
+            self.players_pending = [self.player1, self.player2]
+    
+    
+    def _end_turn(self):
+        """ Acciones automáticas al terminar una fase """
         pass
-    
-    
-    def _execute_attack(self):
-        pass
-    
-    
         
+    def get_oponent(self):
+        print("GET OPONENT: ", self.current_player == self.player1)
+        if self.current_player == self.player1:
+            return self.player2 
+        return self.player1
+    
+    
     def execute_action(self, player, action_type, **kwargs):
         """Ejecuta una acción si es válida en la fase actual"""
         valid_actions = {
@@ -137,70 +177,14 @@ class GameState:
         elif action_type == ActionType.PASS_PHASE:
             self.players_pending.remove(player)
             # aca puedo poner un condicional si los 2 jugadores pasan que avance la fase
+            print("PASS_PHASE: ", self.players_pending)
             if not self.players_pending:
                 self.advance_phase()
                 return ActionResult(True, f"Avanzando a {self.current_phase.value}")
             self.current_player = self.players_pending[0]
-            
+            return ActionResult(True, f"{player.name} paso!")
+        
         return ActionResult(False, "Acción no implementada")
-    
-    
-    def check_win_conditions(self):
-        """Verifica condiciones de victoria"""
-        
-        
-    def get_valid_actions(self, player):
-        """Retorna las acciones válidas para el jugador en la fase actual"""
-        
-        
-    def _resolve_combat(self):
-        pass
-    
-    
-    def _cleanup_phase(self):
-        self.player1.zones.retornar_tesoros_agotados()
-        self.player1.zones.retornar_unidades_a_formacion()
-        self.player2.zones.retornar_tesoros_agotados()
-        self.player2.zones.retornar_unidades_a_formacion()
-        self.current_player = self.get_oponent()
-    
-    
-    def _setup_turn(self):
-        """ Acciones automáticas al comenzar fase SETUP """
-        # 
-        if self.turn_number == 1 and not self.waiting_for_action:
-            self.player1.actions.draw_card_from_mazo(7)
-            self.player2.actions.draw_card_from_mazo(7)
-            self.waiting_for_action = "mulligan_return"
-            self.players_pending = [self.player1, self.player2]
-            
-    
-    def _main_turn(self):
-        """ Acciones automáticas al comenzar fase MAIN """
-        self.players_pending = [self.player1, self.player2]
-    
-    
-    def _attack_turn(self):
-        """ Acciones automáticas al comenzar fase ATTACK """
-        self.players_pending = [self.player1, self.player2]
-        
-        
-    def _end_current_phase(self):
-        """ Acciones automáticas al terminar una fase """
-        if self.current_phase == GamePhase.ATTACK:
-            self._resolve_combat()
-        elif self.current_phase == GamePhase.END:
-            self._cleanup_phase()
-    
-    
-    def _end_turn(self):
-        """ Acciones automáticas al terminar una fase """
-        pass
-        
-    def get_oponent(self):
-        if self.current_player == self.player1:
-            return self.player2 
-        return self.player1
     
 
     def _handle_mulligan_return(self, player, card_id):
@@ -236,7 +220,29 @@ class GameState:
     def pass_phase(self):
         return self.execute_action(self.current_player, ActionType.PASS_PHASE)
 
-
+    def can_play_card(self, player, card_id):
+        """Valida si se puede jugar una carta en la fase actual"""
+        
+    def can_attack(self, player, card_id):
+        """Valida si se puede atacar con una carta"""
+        
+    def can_defend(self, player, attacker_id, defender_id):
+        """Valida si se puede defender un ataque"""
+        
+    def _execute_play_card(self):
+        pass
+    
+    def _execute_attack(self):
+        pass
+    
+    def check_win_conditions(self):
+        """Verifica condiciones de victoria"""
+        
+    def get_valid_actions(self, player):
+        """Retorna las acciones válidas para el jugador en la fase actual"""
+        
+    def _resolve_combat(self):
+        pass
 
 # PHASE_ACTIONS = {
 #     GamePhase.SETUP: {
