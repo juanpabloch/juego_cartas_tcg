@@ -28,7 +28,6 @@ class Zone:
     def remove_by_id(self, id):
         for card in self.cards:
             if card.instance_id == id:
-                print(f"Card found: {card}")
                 recover_card = card
                 self.cards.remove(card)
                 return [recover_card]
@@ -321,6 +320,11 @@ class PlayerZones:
     
     def retornar_unidades_a_formacion(self):
         return self.move_all_cards(self.combate, self.formacion)
+    
+    
+    def clean_turn(self):
+        self.retornar_tesoros_agotados()
+        self.retornar_unidades_a_formacion()
 
 
 

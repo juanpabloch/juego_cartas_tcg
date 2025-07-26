@@ -25,7 +25,8 @@ class ActionType(Enum):
     DEFEND = "defend"
     ACTIVATE_ABILITY = "activate_ability"
     PASS_PHASE = "pass_phase"
-    MULLIGAN_RETURN = 'mulligan_return'
+    RETURN = 'return'
+    MULLIGAN = 'mulligan'
 
 
 
@@ -54,9 +55,11 @@ class GameState:
         
     def advance_phase(self):
         """Avanza a la siguiente fase"""
-        print("ADVANCE PHASE: ", self.current_phase)
-        print("CURRENT PLAYER: ", self.current_player.name)
-        self._end_current_phase()
+        
+        print(f">>> AVANZANDO DE {self.current_phase.value} A...", end=" ")
+        # self._end_current_phase()
+        self.waiting_for_action = None
+        self.players_pending.clear()
         
         if self.current_phase == GamePhase.SETUP:
             self.current_phase = GamePhase.MAIN_1
@@ -68,53 +71,50 @@ class GameState:
             self.current_phase = GamePhase.END
         elif self.current_phase == GamePhase.END:
             self.current_phase = GamePhase.SETUP
-            self.turn_number += 1
-            
-        self._start_current_phase()
-        print("CURRENT PLAYER 2: ", self.current_player.name)
-            
+        
+        print(f"{self.current_phase.value.upper()}")
+        
+        if self.current_phase != GamePhase.END:
+            self._start_current_phase()
+        else:
+            self._end_turn()
+            self.advance_phase()
+
+    
     
     def _start_current_phase(self):
         """ Acciones automáticas al empezar una fase """
         
+        print(f"=== INICIANDO FASE: {self.current_phase.value.upper()} ===")
+        print(f"Jugador activo: {self.current_player.name}")
+        print(f"Turno: {self.turn_number}")
+        
         if self.current_phase == GamePhase.SETUP:
-            print("Start SETUP")
             self._setup_turn()
         elif self.current_phase == GamePhase.MAIN_1:
-            print("Start MAIN 1")
             self._main_turn()
         elif self.current_phase == GamePhase.ATTACK:
-            print("Start ATTACK")
             self._attack_turn()
         elif self.current_phase == GamePhase.MAIN_2:
-            print("Start MAIN 2")
             self._main_turn()
         elif self.current_phase == GamePhase.END:
-            print("Start END")
             self._end_turn()
-            self.advance_phase()
-
-        # # Limpiar acciones de fase anterior
-        # self.phase_actions_taken.clear()
-        # self.players_pending.clear()
         
     
-    def _end_current_phase(self):
-        """ Acciones automáticas al terminar una fase """
-        if self.current_phase == GamePhase.SETUP:
-            pass
-        elif self.current_phase == GamePhase.MAIN_1:
-            pass
-        elif self.current_phase == GamePhase.ATTACK:
-            self._resolve_combat()
-        elif self.current_phase == GamePhase.MAIN_2:
-            pass
-        elif self.current_phase == GamePhase.END:
-            # self._cleanup_phase()
-            self.player1.zones.retornar_tesoros_agotados()
-            self.player1.zones.retornar_unidades_a_formacion()
-            self.player2.zones.retornar_tesoros_agotados()
-            self.player2.zones.retornar_unidades_a_formacion()
+    # def _end_current_phase(self):
+    #     """ Acciones automáticas al terminar una fase """
+    #     if self.current_phase == GamePhase.SETUP:
+    #         pass
+    #     elif self.current_phase == GamePhase.MAIN_1:
+    #         pass
+    #     elif self.current_phase == GamePhase.ATTACK:
+    #         self._resolve_combat()
+    #     elif self.current_phase == GamePhase.MAIN_2:
+    #         pass
+    #     elif self.current_phase == GamePhase.END:
+    #         # self._cleanup_phase()
+    #         self.player1.zones.clean_turn()
+    #         self.player2.zones.clean_turn()
             
     
     
@@ -122,41 +122,61 @@ class GameState:
         """ Acciones automáticas al comenzar fase SETUP """
         # 
         if not self.players_pending:
-            self.players_pending = [self.player1, self.player2]
+            self.set_pending_players()
             
         if self.turn_number == 1 and not self.waiting_for_action:
+            print(">>> Robando cartas iniciales...")
             self.player1.actions.draw_card_from_mazo(7)
             self.player2.actions.draw_card_from_mazo(7)
             self.waiting_for_action = "mulligan_return"
+            self.player2.actions.get_token()
             
     
     def _main_turn(self):
         """ Acciones automáticas al comenzar fase MAIN """
         if not self.players_pending:
-            self.players_pending = [self.player1, self.player2]
+            self.set_pending_players()
     
     
     def _attack_turn(self):
         """ Acciones automáticas al comenzar fase ATTACK """
         if not self.players_pending:
-            self.players_pending = [self.player1, self.player2]
+            self.set_pending_players()
     
     
     def _end_turn(self):
-        """ Acciones automáticas al terminar una fase """
-        pass
+        """ Acciones automáticas al terminar un turno """
+        print(">>> Limpiando turno...")
+        # retornamos las cartas
+        self.player1.zones.clean_turn()
+        self.player2.zones.clean_turn()
+        
+        self.turn_number += 1
+        self.priority_player = self.player2 if self.priority_player == self.player1 else self.player1
+        self.current_player = self.priority_player
+        
+        print(f">>> Nuevo turno: {self.turn_number}, jugador: {self.current_player.name}")
+        
         
     def get_oponent(self):
-        print("GET OPONENT: ", self.current_player == self.player1)
-        if self.current_player == self.player1:
-            return self.player2 
-        return self.player1
+        """Obtiene el oponente del jugador actual"""
+        return self.player2 if self.current_player == self.player1 else self.player1
     
+    
+    def set_pending_players(self):
+        """Establece el orden de jugadores pendientes"""
+        if self.priority_player == self.player1:
+            self.players_pending = [self.player1, self.player2]
+        else:
+            self.players_pending = [self.player2, self.player1]
+
     
     def execute_action(self, player, action_type, **kwargs):
         """Ejecuta una acción si es válida en la fase actual"""
+        print(f">>> {player.name} intenta: {action_type.value}")
+        
         valid_actions = {
-            GamePhase.SETUP: [ActionType.PASS_PHASE, ActionType.MULLIGAN_RETURN],
+            GamePhase.SETUP: [ActionType.PASS_PHASE, ActionType.MULLIGAN, ActionType.RETURN],
             GamePhase.MAIN_1: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.PASS_PHASE],
             GamePhase.ATTACK: [ActionType.ATTACK, ActionType.DEFEND, ActionType.PASS_PHASE],
             GamePhase.MAIN_2: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.PASS_PHASE],
@@ -168,53 +188,101 @@ class GameState:
             return ActionResult(False, f"No puedes {action_type.value} en la fase {self.current_phase.value}")
         
         # Ejecutar la acción específica
-        if action_type == ActionType.MULLIGAN_RETURN:
-            return self._handle_mulligan_return(player, kwargs.get('card_id'))
+        if action_type == ActionType.MULLIGAN:
+            if player.zones.hand.mulligan_used:
+                return ActionResult(False, "Ya hiciste mulligan")
+            
+            player.actions.mulligan()
+            player.actions.draw_card_from_mazo(7)
+            return ActionResult(True, "Mulligan realizado")
+        
+        if action_type == ActionType.RETURN:
+            card_id = kwargs.get('card_id')
+            if not card_id:
+                return ActionResult(False, "Debes especificar una carta")
+            
+            if not player.zones.hand.get_card_info_by_id(card_id):
+                return ActionResult(False, "Carta no encontrada")
+            
+            result = player.actions.first_turn_return_card_to_bottom(card_id)
+            if result:
+                return ActionResult(True, "Carta enviada al fondo del mazo")
+            else:
+                return ActionResult(False, "Error al enviar carta")
+        
         elif action_type == ActionType.PLAY_CARD:
             return self._execute_play_card(player, kwargs.get('card_id'))
+        
         elif action_type == ActionType.ATTACK:
             return self._execute_attack(player, kwargs.get('attacker_id'))
+        
         elif action_type == ActionType.PASS_PHASE:
+            if player not in self.players_pending:
+                return ActionResult(False, "No es tu turno para pasar")
+            
             self.players_pending.remove(player)
-            # aca puedo poner un condicional si los 2 jugadores pasan que avance la fase
-            print("PASS_PHASE: ", self.players_pending)
+            print(f">>> {player.name} pasa la fase")
+            print(f"Jugadores restantes: {[p.name for p in self.players_pending]}")
+            
             if not self.players_pending:
+                print(">>> Todos los jugadores pasaron, avanzando fase...")
+                self.current_player = self.priority_player
                 self.advance_phase()
-                return ActionResult(True, f"Avanzando a {self.current_phase.value}")
-            self.current_player = self.players_pending[0]
-            return ActionResult(True, f"{player.name} paso!")
+
+            else:
+                self.current_player = self.players_pending[0]
+                print(f">>> Turno de: {self.current_player.name}")
+                return ActionResult(True, f"{player.name} pasó - Continúa {self.current_player.name}")
         
         return ActionResult(False, "Acción no implementada")
     
 
-    def _handle_mulligan_return(self, player, card_id):
-        if player not in self.players_pending:
-            return ActionResult(False, "No es tu turno")
-        
-        if card_id and not player.zones.hand.get_card_info_by_id(card_id):
-            return ActionResult(False, "Carta no encontrada")
-        
-        if player.zones.hand.mulligan_used and not card_id:
-            return ActionResult(False, "Seleccionar Carta")
-        
-        if card_id:
-            result = player.actions.first_turn_return_card_to_bottom(card_id)
-            if not result:
-                return ActionResult(False, "Carta no se pudo enviar al mazo")
-            
-            self.players_pending.remove(player)
-            if self.players_pending:
-                return ActionResult(True, "Jugadores pendientes")
-            
-            self.player2.actions.get_token()
+    # MEJORAR!
+    def _handle_mulligan_return(self):
+        """Maneja la fase de mulligan/return de cartas"""
+        if not self.players_pending:
+            # Terminar mulligan
             self.waiting_for_action = None
             self.advance_phase()
-            return ActionResult(True, "Cartas en el mazo")
-            
         
-        player.actions.mulligan()
-        player.actions.draw_card_from_mazo(7)
-        return ActionResult(True, "Mulligan realizado")
+        player = self.players_pending[0]
+        
+        print(f"\n=== MULLIGAN - {player.name} ===")
+        print("CARTAS EN MANO:")
+        for i, card in enumerate(player.zones.hand.see_cards(), 1):
+            print(f"{i}. {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+        
+        print("\nOPCIONES:")
+        if not player.zones.hand.mulligan_used:
+            print("1: Hacer mulligan (descartar toda la mano)")
+        print("2: Mantener mano y devolver 1 carta al mazo")
+        
+        try:
+            option = int(player.get_player_input("Selecciona opción"))
+            
+            if option == 1 and not player.zones.hand.mulligan_used:
+                result = self.execute_action(player, ActionType.MULLIGAN)
+                print(f">>> {result.message}")
+                return result
+                
+            elif option == 2:
+                card_id = player.get_player_input("ID de la carta a devolver")
+                result = self.execute_action(player, ActionType.RETURN, card_id=card_id)
+                
+                if result.success:
+                    self.players_pending.remove(player)
+                    print(f">>> {result.message}")
+                    
+                    if not self.players_pending:
+                        self.waiting_for_action = None
+                        self.advance_phase()
+                
+                return result
+            else:
+                return ActionResult(False, "Opción no válida")
+                
+        except ValueError:
+            return ActionResult(False, "Entrada inválida")
 
 
     def pass_phase(self):
