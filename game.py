@@ -22,8 +22,12 @@ if __name__ == "__main__":
     # Opciones del menú
     options = {
         "1": "Ver MANO",
-        "2": "Ver RESERVA TESOROS",
-        "3": "PASAR",
+        "2": "Ver FORMACION",
+        "3": "Ver RESERVA TESOROS",
+        "4": "Ver COMBATE",
+        "5": "PASAR",
+        "6": "JUGAR Carta",
+        "7": "AGOTAR Tesoro",
         "0": "Salir"
     }
     
@@ -34,7 +38,7 @@ if __name__ == "__main__":
     while not game_state.game_over:
         print("=" * 50)
         print(f"TURNO {game_state.turn_number} | FASE: {game_state.current_phase.value.upper()}")
-        print(f"JUGADOR ACTIVO: {game_state.current_player.name}")
+        print(f"JUGADOR ACTIVO: {game_state.current_player.name} | ORO: {game_state.current_player.get_player_gold()}")
         print("=" * 50)
         
         # Manejar acciones especiales
@@ -43,6 +47,23 @@ if __name__ == "__main__":
             if result and not result.success:
                 print(f"ERROR: {result.message}")
             continue
+        
+        
+        if game_state.waiting_for_action == "setup_phase":
+            print("SETUP: setup_phase")
+            result = game_state._handle_setup_turn()
+            if result and not result.success:
+                print(f"ERROR: {result.message}")
+            continue
+            
+        
+        if game_state.waiting_for_action == "main_pase":
+            print("MAIN: main_pase")
+            
+        
+        if game_state.waiting_for_action == "attack_pase":
+            print("ATTACK: attack_pase")
+            
         
         # Menú normal
         print("\nOPCIONES:")
@@ -53,15 +74,27 @@ if __name__ == "__main__":
             option_num = int(game_state.current_player.get_player_input("Selecciona opción"))
             
             if option_num == 1:
+                """ Ver Mano """
                 cards_in_hand = game_state.current_player.zones.hand.see_cards()
                 if cards_in_hand:
-                    print("\nCARTAS EN MANO:")
+                    print(f"\n{len(cards_in_hand)} CARTAS EN MANO:")
                     for card in cards_in_hand:
                         print(f"- {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
                 else:
                     print("No tienes cartas en la mano")
             
             elif option_num == 2:
+                """ Ver Formacion """
+                cards_in_hand = game_state.current_player.zones.formacion.see_cards()
+                if cards_in_hand:
+                    print(f"\n{len(cards_in_hand)} CARTAS EN FORMACION:")
+                    for card in cards_in_hand:
+                        print(f"- {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+                else:
+                    print("No tienes cartas en formacion")
+            
+            elif option_num == 3:
+                """ Ver Reserva tesoros """
                 treasures = game_state.current_player.zones.reserva_tesoros.see_cards()
                 if treasures:
                     print("\nTESOSROS EN RESERVA:")
@@ -69,12 +102,34 @@ if __name__ == "__main__":
                         print(f"- {treasure.name} (ID: {treasure.instance_id})")
                 else:
                     print("No tienes tesoros en la reserva")
+                    
+            elif option_num == 4:
+                """ Ver Combate """
+                cards_in_hand = game_state.current_player.zones.formacion.see_cards()
+                if cards_in_hand:
+                    print(f"\n{len(cards_in_hand)} CARTAS EN COMBATE:")
+                    for card in cards_in_hand:
+                        print(f"- {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+                else:
+                    print("No tienes cartas en combate")
             
-            elif option_num == 3:
+            elif option_num == 5:
+                """ Pasar """
                 result = game_state.pass_phase()
+                print(f">>> {result.message}")
+                
+            elif option_num == 6:
+                """ jugar carta """
+                result = game_state._handle_play_card()
+                print(f">>> {result.message}")
+            
+            elif option_num == 7:
+                """ agotar tesoro """
+                result = game_state._handle_use_treasure()
                 print(f">>> {result.message}")
             
             elif option_num == 0:
+                """ Salir """
                 print("¡Gracias por jugar!")
                 break
             

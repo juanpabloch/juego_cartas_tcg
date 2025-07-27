@@ -210,6 +210,7 @@ class HandManager(Zone):
         )
         self.mulligan_used = False
         self.cards = []
+        self.realeza = False
         
     def add_cards(self, card_list):
         if len(self.cards) < self.max_size:
@@ -345,10 +346,14 @@ class PlayerActions:
         
     def play_card_from_hand(self, card_id):
         card = self.zones.hand.get_card_info_by_id(card_id)
-        
+        if self.zones.hand.realeza and card.supertype == "REALEZA":
+            print("SOLO UNA CARTA DE REALEZA")
+            return False
         if card and card.can_be_played(self.resources.available_gold):
             # Coordina: mover carta + gastar oro
             play_action = self.zones.move_card(self.zones.hand, self.zones.formacion, card_id)
+            if card.supertype == "REALEZA":
+                self.zones.hand.realeza = True
             if play_action:
                 self.resources.spend_gold(card.cost)
                 return True
@@ -377,7 +382,7 @@ class PlayerActions:
         card = self.zones.move_card(self.zones.reserva_tesoros, self.zones.tesoros_agotados, card_id)
         if card:
             return self.resources.add_gold()
-    
+        return False
     
     def first_turn_return_card_to_bottom(self, card_id):
         return self.zones.move_card_to_bottom(self.zones.hand, self.zones.mazo, card_id)
@@ -420,6 +425,8 @@ class Player:
     def get_player_input(self, message):
         return input(f'{message}: ')
     
+    def get_player_gold(self):
+        return self.resources.available_gold
     
     def __str__(self):
         return f"Player(name={self.name}, life={self.resources.health})"

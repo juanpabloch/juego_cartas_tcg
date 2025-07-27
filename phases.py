@@ -21,6 +21,7 @@ class ActionResult:
 
 class ActionType(Enum):
     PLAY_CARD = "play_card"
+    USE_TREASURE = "use_treasure"
     ATTACK = "attack"
     DEFEND = "defend"
     ACTIVATE_ABILITY = "activate_ability"
@@ -124,25 +125,38 @@ class GameState:
         if not self.players_pending:
             self.set_pending_players()
             
-        if self.turn_number == 1 and not self.waiting_for_action:
-            print(">>> Robando cartas iniciales...")
-            self.player1.actions.draw_card_from_mazo(7)
-            self.player2.actions.draw_card_from_mazo(7)
-            self.waiting_for_action = "mulligan_return"
-            self.player2.actions.get_token()
+        if self.turn_number == 1:
+            if not self.waiting_for_action:
+                print(">>> Robando cartas iniciales...")
+                self.player1.actions.draw_card_from_mazo(7)
+                self.player2.actions.draw_card_from_mazo(7)
+                
+                self.player2.actions.get_token()
+                
+                self.waiting_for_action = "mulligan_return"
             
+            return
+            
+        self.waiting_for_action = "setup_phase"
+    
     
     def _main_turn(self):
         """ Acciones automáticas al comenzar fase MAIN """
         if not self.players_pending:
             self.set_pending_players()
+            
+        if not self.waiting_for_action:
+            self.waiting_for_action = "main_phase"
     
     
     def _attack_turn(self):
         """ Acciones automáticas al comenzar fase ATTACK """
         if not self.players_pending:
             self.set_pending_players()
-    
+
+        if not self.waiting_for_action:
+            self.waiting_for_action = "attack_pase"
+        
     
     def _end_turn(self):
         """ Acciones automáticas al terminar un turno """
@@ -177,9 +191,9 @@ class GameState:
         
         valid_actions = {
             GamePhase.SETUP: [ActionType.PASS_PHASE, ActionType.MULLIGAN, ActionType.RETURN],
-            GamePhase.MAIN_1: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.PASS_PHASE],
+            GamePhase.MAIN_1: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.USE_TREASURE, ActionType.PASS_PHASE],
             GamePhase.ATTACK: [ActionType.ATTACK, ActionType.DEFEND, ActionType.PASS_PHASE],
-            GamePhase.MAIN_2: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.PASS_PHASE],
+            GamePhase.MAIN_2: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.USE_TREASURE, ActionType.PASS_PHASE],
             GamePhase.END: [ActionType.PASS_PHASE]
         }
         
@@ -211,7 +225,11 @@ class GameState:
                 return ActionResult(False, "Error al enviar carta")
         
         elif action_type == ActionType.PLAY_CARD:
-            return self._execute_play_card(player, kwargs.get('card_id'))
+            # return self._execute_play_card(player, kwargs.get('card_id'))
+            return player.actions.play_card_from_hand(kwargs.get('card_id'))
+        
+        elif action_type == ActionType.USE_TREASURE:
+            return player.actions.agotar_tesoro(kwargs.get('card_id'))
         
         elif action_type == ActionType.ATTACK:
             return self._execute_attack(player, kwargs.get('attacker_id'))
@@ -237,12 +255,10 @@ class GameState:
         return ActionResult(False, "Acción no implementada")
     
 
-    # MEJORAR!
     def _handle_mulligan_return(self):
         """Maneja la fase de mulligan/return de cartas"""
         if not self.players_pending:
             # Terminar mulligan
-            self.waiting_for_action = None
             self.advance_phase()
         
         player = self.players_pending[0]
@@ -284,7 +300,67 @@ class GameState:
         except ValueError:
             return ActionResult(False, "Entrada inválida")
 
+    
+    def _handle_setup_turn(self):
+        """Maneja la fase setup de cartas"""
+        if not self.players_pending:
+            self.advance_phase()
+            
+        player = self.players_pending[0]
+            
+        print(f"\n=== SETUP - {player.name} ===")
+        card_result = player.actions.draw_card_from_mazo()
+        if not card_result:
+            print("MANO LLENA")
+        treasure_result = player.actions.draw_treasure()
+        if not treasure_result:
+            print("TESOROS LLENO")
 
+        self.players_pending.remove(player)
+        
+        if not self.players_pending:
+            self.waiting_for_action = None
+            self.advance_phase()
+            
+    
+    def _handle_play_card(self):
+        if not self.players_pending:
+            self.advance_phase()
+        
+        player = self.players_pending[0]
+        
+        print(f"\n=== JUGAR CARTA - {player.name} ===")
+        print("CARTAS EN MANO:")
+        for i, card in enumerate(player.zones.hand.see_cards(), 1):
+            print(f"{i}. {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+        
+        print("\n")
+        card_id = player.get_player_input("Selecciona una carta")
+        result = self.execute_action(player, ActionType.PLAY_CARD, card_id=card_id)
+        if result:
+            return ActionResult(True, "Carta jugada")
+        return ActionResult(False, "No se puede jugar Carta")
+    
+    
+    def _handle_use_treasure(self):
+        if not self.players_pending:
+            self.advance_phase()
+
+        player = self.players_pending[0]
+        
+        print(f"\n=== AGOTAR TESORO - {player.name} ===")
+        print("TESOROS EN JUEGO:")
+        for i, card in enumerate(player.zones.reserva_tesoros.see_cards(), 1):
+            print(f"{i}. {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+        
+        print("\n")
+        card_id = player.get_player_input("Selecciona una carta")
+        result = self.execute_action(player, ActionType.USE_TREASURE, card_id=card_id)
+        if result:
+            return ActionResult(True, "Tesoro agotado")
+        return ActionResult(False, "No se puede jugar Carta")
+    
+    
     def pass_phase(self):
         return self.execute_action(self.current_player, ActionType.PASS_PHASE)
 
