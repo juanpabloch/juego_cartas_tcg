@@ -33,6 +33,9 @@ class Card(ABC):
     def on_enter_play(self):
         """Ejecuta el efecto de aparición en juego (a implementar en subclases si es necesario)"""
         pass
+    
+    def __str__(self) -> str:
+        return f"{self.name} | type: {self.type}"
 
 
 @dataclass
@@ -125,25 +128,64 @@ class Token(Card):
     
 
 # No se como puedo usar esta clase
-# class CardInPlay:
-#     _next_id = 1  # Variable de clase
+class CardInPlay:
+    _next_id = 1  # Variable de clase
     
-#     def __init__(self, card):
-#         self.card = card
-#         self.is_tapped = False
-#         self.current_damage = 0
-#         self.id = CardInPlay._next_id
-#         CardInPlay._next_id += 1
+    def __init__(self, card):
+        self.card = card
+        self.can_attack = False
+        self.current_damage = 0
+        self.has_attacked_this_turn = False
+        self.id = CardInPlay._next_id
+        CardInPlay._next_id += 1
     
-#     # Métodos de conveniencia para acceder a propiedades de la carta
-#     @property
-#     def name(self):
-#         return self.card.name
+    # Métodos de conveniencia para acceder a propiedades de la carta
+    @property
+    def name(self):
+        return self.card.name
     
-#     @property
-#     def cost(self):
-#         return self.card.cost
+    @property
+    def cost(self):
+        return self.card.cost
+    
+    @property
+    def type(self):
+        return self.card.type
+    
+    @property
+    def instance_id(self):
+        return self.card.instance_id
+    
+    @property
+    def get_strength_toughness(self):
+        if isinstance(self.card, Unit):
+            return (self.card.strength, self.card.toughness)
+        return (0, 0)
 
+
+    def take_damage(self, amount):
+        """Aplica daño a la carta"""
+        if isinstance(self.card, Unit):
+            self.current_damage += amount
+            return self.current_damage >= self.card.strength
+        
+    def can_attack_now(self):
+        """Verifica si puede atacar en este momento"""
+        return (self.can_attack and 
+                not self.has_attacked_this_turn and
+                isinstance(self.card, Unit))
+        
+    def reset_for_new_turn(self):
+        """Resetea estado para nuevo turno"""
+        self.can_attack = True
+        self.has_attacked_this_turn = False
+        self.current_damage = 0
+        
+    def __str__(self):
+        if isinstance(self.card, Unit):
+            damage_str = f" ({self.current_damage} daño)" if self.current_damage > 0 else ""
+            return f"{self.card.name} [{self.card.strength}/{self.card.toughness}]{damage_str}"
+        return f"{self.card.name}"
 
 
 def load_cards(path_csv: str):

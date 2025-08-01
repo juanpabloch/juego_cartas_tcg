@@ -28,6 +28,7 @@ if __name__ == "__main__":
         "5": "PASAR",
         "6": "JUGAR Carta",
         "7": "AGOTAR Tesoro",
+        "8": "Pasar a COMBATE",
         "0": "Salir"
     }
     
@@ -62,7 +63,7 @@ if __name__ == "__main__":
             
         
         if game_state.waiting_for_action == "attack_pase":
-            print("ATTACK: attack_pase")
+            print("ATTACK: attack_pase") 
             
         
         # Menú normal
@@ -89,7 +90,8 @@ if __name__ == "__main__":
                 if cards_in_hand:
                     print(f"\n{len(cards_in_hand)} CARTAS EN FORMACION:")
                     for card in cards_in_hand:
-                        print(f"- {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+                        # print("CARD: ", card.__dict__)
+                        print(f"- {card.name} (ID: {card.id}, {card.type}) - Costo: {card.cost} - Fuerza/Resistencia: {card.get_strength_toughness} - Ataque: {card.can_attack_now()}")
                 else:
                     print("No tienes cartas en formacion")
             
@@ -103,13 +105,15 @@ if __name__ == "__main__":
                 else:
                     print("No tienes tesoros en la reserva")
                     
+            
+            # TODO: Error inesperado: 'str' object is not callable
             elif option_num == 4:
                 """ Ver Combate """
-                cards_in_hand = game_state.current_player.zones.formacion.see_cards()
+                cards_in_hand = game_state.current_player.zones.combate.see_cards()
                 if cards_in_hand:
                     print(f"\n{len(cards_in_hand)} CARTAS EN COMBATE:")
                     for card in cards_in_hand:
-                        print(f"- {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+                        print(f"- {card.name()} (ID: {card.id}) - Costo: {card.cost()} - Fuerza/Resistencia: {card.get_strength_toughness}")
                 else:
                     print("No tienes cartas en combate")
             
@@ -126,6 +130,10 @@ if __name__ == "__main__":
             elif option_num == 7:
                 """ agotar tesoro """
                 result = game_state._handle_use_treasure()
+                print(f">>> {result.message}")
+                
+            elif option_num == 8:
+                result = game_state._handle_attack_phase()
                 print(f">>> {result.message}")
             
             elif option_num == 0:

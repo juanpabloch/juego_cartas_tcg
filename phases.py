@@ -21,6 +21,7 @@ class ActionResult:
 
 class ActionType(Enum):
     PLAY_CARD = "play_card"
+    FAST_ACTION = 'fast_action'
     USE_TREASURE = "use_treasure"
     ATTACK = "attack"
     DEFEND = "defend"
@@ -28,7 +29,6 @@ class ActionType(Enum):
     PASS_PHASE = "pass_phase"
     RETURN = 'return'
     MULLIGAN = 'mulligan'
-
 
 
 class GameState:
@@ -147,6 +147,10 @@ class GameState:
             
         if not self.waiting_for_action:
             self.waiting_for_action = "main_phase"
+            
+        treasure_result = self.priority_player.actions.draw_treasure()
+        if not treasure_result:
+            print("TESOROS LLENO")
     
     
     def _attack_turn(self):
@@ -190,9 +194,9 @@ class GameState:
         print(f">>> {player.name} intenta: {action_type.value}")
         
         valid_actions = {
-            GamePhase.SETUP: [ActionType.PASS_PHASE, ActionType.MULLIGAN, ActionType.RETURN],
+            GamePhase.SETUP: [ActionType.PASS_PHASE, ActionType.MULLIGAN, ActionType.FAST_ACTION, ActionType.RETURN],
             GamePhase.MAIN_1: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.USE_TREASURE, ActionType.PASS_PHASE],
-            GamePhase.ATTACK: [ActionType.ATTACK, ActionType.DEFEND, ActionType.PASS_PHASE],
+            GamePhase.ATTACK: [ActionType.ATTACK, ActionType.DEFEND, ActionType.FAST_ACTION, ActionType.PASS_PHASE],
             GamePhase.MAIN_2: [ActionType.PLAY_CARD, ActionType.ACTIVATE_ABILITY, ActionType.USE_TREASURE, ActionType.PASS_PHASE],
             GamePhase.END: [ActionType.PASS_PHASE]
         }
@@ -224,6 +228,7 @@ class GameState:
             else:
                 return ActionResult(False, "Error al enviar carta")
         
+        # TODO: retornar ActionResult
         elif action_type == ActionType.PLAY_CARD:
             # return self._execute_play_card(player, kwargs.get('card_id'))
             return player.actions.play_card_from_hand(kwargs.get('card_id'))
@@ -232,7 +237,7 @@ class GameState:
             return player.actions.agotar_tesoro(kwargs.get('card_id'))
         
         elif action_type == ActionType.ATTACK:
-            return self._execute_attack(player, kwargs.get('attacker_id'))
+            return player.actions.attack_with_unit(kwargs.get('card_id'))
         
         elif action_type == ActionType.PASS_PHASE:
             if player not in self.players_pending:
@@ -312,9 +317,6 @@ class GameState:
         card_result = player.actions.draw_card_from_mazo()
         if not card_result:
             print("MANO LLENA")
-        treasure_result = player.actions.draw_treasure()
-        if not treasure_result:
-            print("TESOROS LLENO")
 
         self.players_pending.remove(player)
         
@@ -332,7 +334,7 @@ class GameState:
         print(f"\n=== JUGAR CARTA - {player.name} ===")
         print("CARTAS EN MANO:")
         for i, card in enumerate(player.zones.hand.see_cards(), 1):
-            print(f"{i}. {card.name} (ID: {card.instance_id}) - Costo: {card.cost}")
+            print(f"{i}. {card.name} (ID: {card.instance_id}, {card.type}) - Costo: {card.cost}")
         
         print("\n")
         card_id = player.get_player_input("Selecciona una carta")
@@ -358,6 +360,28 @@ class GameState:
         result = self.execute_action(player, ActionType.USE_TREASURE, card_id=card_id)
         if result:
             return ActionResult(True, "Tesoro agotado")
+        return ActionResult(False, "No se puede jugar Carta")
+    
+    
+    def _handle_attack_phase(self):
+        if not self.players_pending:
+            self.advance_phase()
+        
+        player = self.players_pending[0]
+
+        print(f"\n=== JUGAR CARTA - {player.name} ===")
+        print("CARTAS QUE PUEDEN ATACAR:")
+        for i, card in enumerate(player.zones.formacion.see_cards(), 1):
+            if card.can_attack_now():
+                print(f"{i}. {card.name} (ID: {card.instance_id}, {card.type}) - Fuerza/Resistencia: {card.get_strength_toughness}")
+        
+        print("\n")
+        card_id = player.get_player_input("Selecciona una carta")
+
+        result = self.execute_action(player, ActionType.ATTACK, card_id=card_id)
+        print("handle_attack_RESULT: ", result)
+        if result:
+            return ActionResult(True, "Carta en combate")
         return ActionResult(False, "No se puede jugar Carta")
     
     

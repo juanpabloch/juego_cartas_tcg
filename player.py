@@ -1,4 +1,6 @@
 import random
+from cards import CardInPlay
+
 
 class Zone:
     def __init__(self, name, max_size=None, is_visible=True, allowed_types=None, maintains_order=True):
@@ -183,6 +185,29 @@ class FormationManager(Zone):
             allowed_types = ["UNIDAD", "MONUMENTO", "ACCION"],
             maintains_order = False
         )
+        
+    def add_card_to_play(self, card):
+        """Convierte una carta en CardInPlay y la añade"""
+        if self.can_add():
+            card_in_play = CardInPlay(card)
+            self.cards.append(card_in_play)
+            
+            # Ejecutar efecto de aparición si lo tiene
+            if card.has_enter_play_effect():
+                card.on_enter_play()
+            
+            return card_in_play
+        return None
+    
+    def get_units_that_can_attack(self):
+        """Retorna unidades que pueden atacar"""
+        return [card_in_play for card_in_play in self.cards 
+                if card_in_play.can_attack_now()]
+    
+    def reset_all_for_new_turn(self):
+        """Resetea todas las cartas para nuevo turno"""
+        for card_in_play in self.cards:
+            card_in_play.reset_for_new_turn()
 
 
 class CombatManager(Zone):
@@ -197,6 +222,9 @@ class CombatManager(Zone):
             allowed_types = ["UNIDAD", "MONUMENTO", "ACCION"],
             maintains_order = False
         )
+        
+        self.attackers = []
+        self.defenders = {}
         
 
 class HandManager(Zone):
@@ -288,6 +316,11 @@ class PlayerZones:
                 card = from_zone.remove_amount(amount)
             
             if card:
+                if from_zone == self.hand and to_zone == self.formacion:
+                    # Añadir carta a la formación
+                    card_in_play = to_zone.add_card_to_play(card[0])
+                    if card_in_play:
+                        return True
                 leftovers = to_zone.add_cards(card)
                 if isinstance(leftovers, list):
                     # agregar lestovers al mazo to zone
@@ -323,9 +356,15 @@ class PlayerZones:
         return self.move_all_cards(self.combate, self.formacion)
     
     
+    def _activar_ataque(self):
+        for card in self.formacion.cards:
+            card.reset_for_new_turn()
+            
+    
     def clean_turn(self):
         self.retornar_tesoros_agotados()
         self.retornar_unidades_a_formacion()
+        self._activar_ataque()
 
 
 
@@ -398,7 +437,13 @@ class PlayerActions:
     
     
     def attack_with_unit(self, card_id):
-        pass
+        card = self.zones.formacion.get_card_info_by_id(card_id)
+        if card and card.can_attack_now():
+            # Coordina: mover carta + gastar oro
+            card_selected = self.zones.move_card(self.zones.formacion, self.zones.combate, card_id)
+            if card_selected:
+                return True
+        return False
     
     
     def get_token(self):
