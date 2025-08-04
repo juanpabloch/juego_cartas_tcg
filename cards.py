@@ -32,6 +32,27 @@ class Card(ABC):
     
     def on_enter_play(self):
         """Ejecuta el efecto de aparición en juego (a implementar en subclases si es necesario)"""
+        # Aparición en juego: Excavar Bóveda 1.
+        # Aparición en juego: Excavar Bóveda 2, luego puedes mostrar la primera carta de tu Bóveda. Siempre que muestres por este efecto, intercambia ese tesoro por el tesoro aliado no agotado objetivo.
+        # Aparición en juego: Excavar Bóveda 2, luego puedes mostrar la primera carta de tu Bóveda.  Siempre que muestres por este efecto, intercambia ese tesoro por el tesoro aliado no agotado objetivo.
+        # Aparición en juego: Hace 4 daños a la unidad rival objetivo.
+        # Aparición en juego: Si un oponente recibió daño este turno, ese oponente descarta  una carta.
+        # Aparición en juego: Crea dos fichsa libro. 1 oro y Destruir una ficha de libro aliada: Regresa la unidad rival objetivo a la mano. Activa solo una vez por turno.
+        # Aparición en juego: Regresa hasta una unidad rival objetivo a la mano.
+        # Aparición en juego: Regresa la unidad rival objetivo y hasta una unidad aliada no mago objetivo a la mano.
+        # Aparición en juego: Crea una ficha libro. 1 de oro y Destruir: La unidad rival objetivo gana -1/-1 por cada ficha libro aliada hasta el final del turno.
+        # Aparición en juego: Mira las primeras tres cartas de tu Reino. Puedes mostrar una carta de unidad pirata entre ellas y ponerla en tu mano. Pon el resto en el fondo.
+        # Aparición en juego: Regresa todas las cartas de tesoro de tu Descarte al campo.
+        # Aparición en juego: El jugador objetivo descarta tres cartas.
+        # Aparición en juego: Regresa la carta de tesoro objetivo de tu Descarte al campo.
+        # Aparición en juego: El jugador objetivo descarta  una carta.
+        pass
+        
+    def has_destroy_effect(self) -> bool:
+        return "Derrotado:" in self.text
+    
+    def on_destroy(self):
+        """Ejecuta el efecto de destrucción (a implementar en subclases si es necesario)"""
         pass
     
     def __str__(self) -> str:
@@ -51,6 +72,7 @@ class Unit(Card):
         """Verifica si la unidad puede atacar"""
         return True  # Por defecto, todas las unidades pueden atacar
     
+    # Habilidades especiales
     def has_frenzy(self) -> bool:
         """Verifica si tiene la habilidad Frenesí"""
         return "Frenesí" in self.text
@@ -66,6 +88,15 @@ class Unit(Card):
     def has_evasion(self) -> bool:
         """Verifica si tiene la habilidad Evasión"""
         return "Evasión" in self.text
+
+    def has_fearsome(self) -> bool:
+        """Verifica si tiene la habilidad Temible"""
+        return "Temible" in self.text
+    
+    # me falta Resguardo no se para que es
+    # Arrollar, Centinela, Curar, Guardián, Apoyo, Dureza, Furia, Indestructible
+    
+
 
 
 @dataclass

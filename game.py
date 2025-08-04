@@ -86,10 +86,10 @@ if __name__ == "__main__":
             
             elif option_num == 2:
                 """ Ver Formacion """
-                cards_in_hand = game_state.current_player.zones.formacion.see_cards()
-                if cards_in_hand:
-                    print(f"\n{len(cards_in_hand)} CARTAS EN FORMACION:")
-                    for card in cards_in_hand:
+                cards_in_formation = game_state.current_player.zones.formacion.see_cards()
+                if cards_in_formation:
+                    print(f"\n{len(cards_in_formation)} CARTAS EN FORMACION:")
+                    for card in cards_in_formation:
                         # print("CARD: ", card.__dict__)
                         print(f"- {card.name} (ID: {card.id}, {card.type}) - Costo: {card.cost} - Fuerza/Resistencia: {card.get_strength_toughness} - Ataque: {card.can_attack_now()}")
                 else:
@@ -109,10 +109,11 @@ if __name__ == "__main__":
             # TODO: Error inesperado: 'str' object is not callable
             elif option_num == 4:
                 """ Ver Combate """
-                cards_in_hand = game_state.current_player.zones.combate.see_cards()
-                if cards_in_hand:
-                    print(f"\n{len(cards_in_hand)} CARTAS EN COMBATE:")
-                    for card in cards_in_hand:
+                cards_in_combat = game_state.current_player.zones.combate.see_cards()
+                if cards_in_combat:
+                    print(f"\n{len(cards_in_combat)} CARTAS EN COMBATE:")
+                    for card in cards_in_combat:
+                        print("CARD: ", card.__dict__)
                         print(f"- {card.name()} (ID: {card.id}) - Costo: {card.cost()} - Fuerza/Resistencia: {card.get_strength_toughness}")
                 else:
                     print("No tienes cartas en combate")

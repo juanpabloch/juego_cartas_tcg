@@ -186,6 +186,8 @@ class FormationManager(Zone):
             maintains_order = False
         )
         
+        
+    # TODO: terminar funcion ver efectos al jugar una carta
     def add_card_to_play(self, card):
         """Convierte una carta en CardInPlay y la añade"""
         if self.can_add():
@@ -195,6 +197,9 @@ class FormationManager(Zone):
             # Ejecutar efecto de aparición si lo tiene
             if card.has_enter_play_effect():
                 card.on_enter_play()
+                
+            if card.type == "UNIDAD":
+                card_in_play.can_attack = card.has_frenzy()
             
             return card_in_play
         return None
